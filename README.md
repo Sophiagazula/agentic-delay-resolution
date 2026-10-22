@@ -48,7 +48,7 @@ figures/    architecture.png
 Requires Python 3.10+.
 
 ```bash
-git clone https://github.com/<your-username>/agentic-delay-resolution.git
+git clone https://github.com/<Sophiagazula>/agentic-delay-resolution.git
 cd agentic-delay-resolution
 pip install -r requirements.txt
 python src/experiment.py
@@ -60,7 +60,7 @@ The script runs in about 3–5 minutes with a fixed random seed. It regenerates 
 
 If you use this work, please cite:
 
-> Gazula, S. (2026). *Tiered-autonomy agentic decision support for shipment delay exception management: Architecture and simulation-based evaluation.* https://github.com/<your-username>/agentic-delay-resolution
+> Gazula, S. (2026). *Tiered-autonomy agentic decision support for shipment delay exception management: Architecture and simulation-based evaluation.* https://github.com/<Sophiagazula>/agentic-delay-resolution
 
 A `CITATION.cff` file is included, so GitHub shows a **"Cite this repository"** button.
 
