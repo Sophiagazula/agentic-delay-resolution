@@ -9,6 +9,8 @@ authors:
 date-released: 2026-10-22
 version: 1.0.0
 license: MIT
+doi: 10.5281/zenodo.23571811
+repository-code: "https://github.com/Sophiagazula/agentic-delay-resolution"
 keywords:
   - agentic AI
   - supply chain
