@@ -1,5 +1,7 @@
 # Tiered-Autonomy Agentic Decision Support for Shipment Delay Exception Management
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23571811.svg)](https://doi.org/10.5281/zenodo.23571811)
+
 **Author:** Sophia Gazula — Independent Researcher, Chicago, IL · sophiegazula@gmail.com
 
 This repository contains the paper, code, and synthetic data for
@@ -48,7 +50,7 @@ figures/    architecture.png
 Requires Python 3.10+.
 
 ```bash
-git clone https://github.com/<Sophiagazula>/agentic-delay-resolution.git
+git clone https://github.com/Sophiagazula/agentic-delay-resolution.git
 cd agentic-delay-resolution
 pip install -r requirements.txt
 python src/experiment.py
@@ -60,7 +62,7 @@ The script runs in about 3–5 minutes with a fixed random seed. It regenerates 
 
 If you use this work, please cite:
 
-> Gazula, S. (2026). *Tiered-autonomy agentic decision support for shipment delay exception management: Architecture and simulation-based evaluation.* https://github.com/<Sophiagazula>/agentic-delay-resolution
+> Gazula, S. (2026). *Tiered-autonomy agentic decision support for shipment delay exception management: Architecture and simulation-based evaluation* (Version 1.0.0) [Paper, code, and data]. Zenodo. https://doi.org/10.5281/zenodo.23571811
 
 A `CITATION.cff` file is included, so GitHub shows a **"Cite this repository"** button.
 
