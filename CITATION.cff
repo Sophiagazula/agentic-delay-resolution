@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "Tiered-Autonomy Agentic Decision Support for Shipment Delay Exception Management: Architecture and Simulation-Based Evaluation"
+authors:
+  - family-names: Gazula
+    given-names: Sophia
+    email: sophiegazula@gmail.com
+    affiliation: Independent Researcher
+date-released: 2026-10-22
+version: 1.0.0
+license: MIT
+keywords:
+  - agentic AI
+  - supply chain
+  - shipment delay prediction
+  - human-in-the-loop
+  - discrete-event simulation
