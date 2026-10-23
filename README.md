@@ -1,13 +1,13 @@
 # Tiered-Autonomy Agentic Decision Support for Shipment Delay Exception Management
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23571811.svg)](https://doi.org/10.5281/zenodo.23571811)
+[![SSRN](https://img.shields.io/badge/SSRN-10.2139%2Fssrn.7657262-blue)](https://doi.org/10.2139/ssrn.7657262) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23571811.svg)](https://doi.org/10.5281/zenodo.23571811)
 
 **Author:** Sophia Gazula — Independent Researcher, Chicago, IL · sophiegazula@gmail.com
 
 This repository contains the paper, code, and synthetic data for
 *"Tiered-Autonomy Agentic Decision Support for Shipment Delay Exception Management: Architecture and Simulation-Based Evaluation."*
 
-📄 **Paper:** [`paper/Gazula_Agentic_Delay_Resolution_Paper.pdf`](paper/Gazula_Agentic_Delay_Resolution_Paper.pdf)
+📄 **Paper:** [SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7657262) · DOI [10.2139/ssrn.7657262](https://doi.org/10.2139/ssrn.7657262) · [PDF in this repo](paper/Gazula_Agentic_Delay_Resolution_Paper.pdf)
 
 ## Overview
 
@@ -60,9 +60,13 @@ The script runs in about 3–5 minutes with a fixed random seed. It regenerates 
 
 ## Citation
 
-If you use this work, please cite:
+If you use this work, please cite the paper:
 
-> Gazula, S. (2026). *Tiered-autonomy agentic decision support for shipment delay exception management: Architecture and simulation-based evaluation* (Version 1.0.0) [Paper, code, and data]. Zenodo. https://doi.org/10.5281/zenodo.23571811
+> Gazula, S. (2026). Tiered-autonomy agentic decision support for shipment delay exception management: Architecture and simulation-based evaluation. *SSRN*. https://doi.org/10.2139/ssrn.7657262
+
+To cite the code and data specifically:
+
+> Gazula, S. (2026). *Agentic delay resolution: Code and synthetic data* (Version 1.0.0). Zenodo. https://doi.org/10.5281/zenodo.23571811
 
 A `CITATION.cff` file is included, so GitHub shows a **"Cite this repository"** button.
 

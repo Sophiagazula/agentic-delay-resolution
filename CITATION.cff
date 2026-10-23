@@ -17,3 +17,14 @@ keywords:
   - shipment delay prediction
   - human-in-the-loop
   - discrete-event simulation
+preferred-citation:
+  type: article
+  title: "Tiered-Autonomy Agentic Decision Support for Shipment Delay Exception Management: Architecture and Simulation-Based Evaluation"
+  authors:
+    - family-names: Gazula
+      given-names: Sophia
+      affiliation: Independent Researcher
+  year: 2026
+  journal: "SSRN Electronic Journal"
+  doi: 10.2139/ssrn.7657262
+  url: "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7657262"
