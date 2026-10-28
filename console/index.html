@@ -1,0 +1,688 @@
+<title>Delay Resolution Agent</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: exception-management console. Sidebar grouped by job (operate, govern, evaluate), context bar with the agent run and policy in force, then the working view. The shipment panel is the centre of gravity: predict, assess, decide, act for one shipment. */
+:root {
+  --canvas: #F3F5F7; --surface: #FFFFFF; --surface-2: #EFF2F5; --line: #DFE3E8; --line-strong: #C2C9D1;
+  --ink: #16202A; --ink-2: #47535F; --ink-3: #6E7A86;
+  --nav: #18233A; --nav-2: #22304B; --nav-ink: #A9B5C8; --nav-ink-strong: #F3F6FB;
+  --accent: #2550C0; --accent-soft: #E3E9F9; --neutral-mark: #ADB5BF;
+  --t1: #1C7647; --t1-soft: #E0F1E7; --t2: #2550C0; --t2-soft: #E3E9F9; --t3: #B0461A; --t3-soft: #FBE8DE;
+  --good: #1C7647; --good-soft: #E0F1E7; --warn: #985F00; --warn-soft: #FBEED2; --crit: #B42318; --crit-soft: #FBE3E0;
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius: 8px; --radius-s: 6px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #0F1419; --surface: #151C23; --surface-2: #1B232B; --line: #252F39; --line-strong: #36424E;
+  --ink: #E4E9EE; --ink-2: #AEB8C3; --ink-3: #84909C;
+  --nav: #0C1320; --nav-2: #172238; --nav-ink: #8C9AB0; --nav-ink-strong: #F3F6FB;
+  --accent: #7FA0F0; --accent-soft: #1D2B4B; --neutral-mark: #56636F;
+  --t1: #5BC28A; --t1-soft: #13301F; --t2: #7FA0F0; --t2-soft: #1D2B4B; --t3: #F09A6E; --t3-soft: #3A2116;
+  --good: #5BC28A; --good-soft: #13301F; --warn: #E2AC4D; --warn-soft: #33260E; --crit: #F07B70; --crit-soft: #3A1714;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --canvas: #0F1419; --surface: #151C23; --surface-2: #1B232B; --line: #252F39; --line-strong: #36424E;
+  --ink: #E4E9EE; --ink-2: #AEB8C3; --ink-3: #84909C;
+  --nav: #0C1320; --nav-2: #172238; --nav-ink: #8C9AB0; --nav-ink-strong: #F3F6FB;
+  --accent: #7FA0F0; --accent-soft: #1D2B4B; --neutral-mark: #56636F;
+  --t1: #5BC28A; --t1-soft: #13301F; --t2: #7FA0F0; --t2-soft: #1D2B4B; --t3: #F09A6E; --t3-soft: #3A2116;
+  --good: #5BC28A; --good-soft: #13301F; --warn: #E2AC4D; --warn-soft: #33260E; --crit: #F07B70; --crit-soft: #3A1714;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--canvas); color: var(--ink); font-family: var(--font-ui); font-size: 13.5px; line-height: 1.5; margin: 0; font-variant-numeric: tabular-nums; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.25; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: var(--accent); }
+
+.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; background: linear-gradient(90deg, var(--nav) 0 236px, var(--canvas) 236px); }
+.side { background: var(--nav); color: var(--nav-ink); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 18px 12px calc(16px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.brandmark { display: flex; gap: 10px; align-items: center; padding: 2px 8px 16px; }
+.logo { width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center; background: var(--nav-ink-strong); color: var(--nav); font-weight: 700; font-size: 12.5px; flex: 0 0 auto; }
+.brandmark b { display: block; color: var(--nav-ink-strong); font-size: 14px; font-weight: 600; line-height: 1.2; }
+.brandmark span { font-size: 12px; }
+.side-nav { display: grid; gap: 2px; }
+.side-nav .grp { font-size: 11.5px; color: var(--nav-ink); opacity: .75; padding: 12px 10px 4px; }
+.side-nav a { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--radius-s); color: var(--nav-ink); text-decoration: none; font-weight: 500; }
+.side-nav a:hover { background: var(--nav-2); color: var(--nav-ink-strong); }
+.side-nav a[aria-current="page"] { background: var(--nav-2); color: var(--nav-ink-strong); box-shadow: inset 2px 0 0 var(--nav-ink-strong); }
+.side-nav .count { margin-left: auto; font-size: 11.5px; font-weight: 600; padding: 0 6px; border-radius: 99px; background: rgba(255,255,255,.12); color: var(--nav-ink-strong); }
+.side-nav .count:empty { display: none; }
+.side-foot { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid var(--nav-2); font-size: 12px; display: grid; gap: 6px; }
+.side-foot a { color: var(--nav-ink-strong); text-decoration: none; }
+.side-foot a:hover { text-decoration: underline; }
+.side-foot p { margin: 0; }
+.tag { display: inline-flex; width: max-content; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: rgba(226,172,77,.16); color: #E9BF6E; }
+
+.main-col { min-width: 0; padding: 0 max(24px, env(safe-area-inset-right, 0px)) 48px 28px; }
+.ctxbar { display: flex; gap: 26px; flex-wrap: wrap; align-items: center; padding: 14px 0 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.ctxbar div { display: grid; gap: 1px; }
+.ctxbar span { color: var(--ink-3); font-size: 11.5px; }
+.ctxbar b { font-weight: 600; }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 16px 0 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.kpi { padding: 12px 16px; min-width: 0; }
+.kpi + .kpi { border-left: 1px solid var(--line); }
+.kpi .l { font-size: 12px; color: var(--ink-3); }
+.kpi .v { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; }
+.kpi .d { font-size: 12px; color: var(--ink-2); }
+.kpi.attn .v { color: var(--t3); }
+
+main { padding-top: 14px; }
+section.panel[hidden] { display: none !important; }
+.lede { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 6px 0 14px; }
+.lede h2 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.lede p { margin: 3px 0 0; color: var(--ink-2); max-width: 80ch; }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; min-width: 0; }
+.card h3 { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.hint { font-size: 12px; color: var(--ink-3); margin: 0 0 10px; }
+.stack { display: grid; gap: 14px; align-content: start; min-width: 0; }
+h3.sect { font-size: 14px; font-weight: 600; margin: 22px 0 8px; }
+ul.clean, ol.clean { margin: 6px 0 0; padding-left: 18px; color: var(--ink-2); }
+ul.clean li, ol.clean li { margin-bottom: 5px; }
+
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--radius-s); padding: 4px 10px; font-size: 12.5px; cursor: pointer; color: var(--ink-2); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.chip .c { opacity: .7; margin-left: 4px; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+select, .search { border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--radius-s); padding: 5px 8px; max-width: 100%; font-size: 12.5px; }
+.search { width: 150px; }
+
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+th { font-size: 12px; font-weight: 600; color: var(--ink-3); background: var(--surface); position: sticky; top: 0; border-bottom-color: var(--line-strong); }
+th button { all: unset; cursor: pointer; }
+th button:hover { color: var(--ink); }
+th button[aria-sort="descending"]::after { content: " ↓"; color: var(--ink); }
+th button[aria-sort="ascending"]::after { content: " ↑"; color: var(--ink); }
+td.n, th.n { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--surface-2); }
+tbody tr.clickable { cursor: pointer; }
+tbody tr.sel td { background: var(--accent-soft); }
+td .sub { display: block; font-size: 11.5px; color: var(--ink-3); }
+.more { display: flex; justify-content: space-between; align-items: center; padding: 8px 2px; font-size: 12.5px; color: var(--ink-3); }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.t1 { background: var(--t1-soft); color: var(--t1); }
+.t2 { background: var(--t2-soft); color: var(--t2); }
+.t3 { background: var(--t3-soft); color: var(--t3); }
+.st { font-size: 12px; }
+.st.awaiting, .st.escalated { font-weight: 600; color: var(--ink); }
+.st.awaiting::before, .st.escalated::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--t3); margin-right: 6px; vertical-align: 1px; }
+.st.auto, .st.approved, .st.resolved { color: var(--ink-2); }
+.st.rejected { color: var(--ink-3); }
+.pbar { display: inline-flex; align-items: center; gap: 8px; }
+.pbar .b { width: 52px; height: 5px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.pbar .b span { display: block; height: 100%; background: var(--ink-2); }
+.sev { display: inline-flex; align-items: center; gap: 8px; }
+.sev .b { display: flex; width: 70px; height: 7px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.sev .b i { display: block; height: 100%; }
+.c-inv { background: #7A5AC0; } .c-sla { background: #2E8FA3; } .c-val { background: #B98A2E; }
+
+.btn { border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--radius-s); padding: 5px 12px; cursor: pointer; font-weight: 600; font-size: 12.5px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn:hover { border-color: var(--ink-3); }
+
+.mrow { display: grid; grid-template-columns: 190px minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 12.5px; }
+.mrow .bar { height: 8px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.mrow .bar span { display: block; height: 100%; background: var(--neutral-mark); border-radius: 0 2px 2px 0; }
+.mrow.me .bar span { background: var(--accent); }
+.mrow .val { text-align: right; }
+.metric-rows { display: grid; gap: 8px; }
+.stat3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); margin-top: 10px; }
+.stat3 div { padding: 10px 0 0; }
+.stat3 div + div { padding-left: 12px; border-left: 1px solid var(--line); }
+.stat3 span { display: block; font-size: 11.5px; color: var(--ink-3); }
+.stat3 b { font-size: 17px; font-weight: 600; }
+
+.ctl { display: grid; gap: 3px; min-width: 0; }
+.ctl label { font-size: 12px; color: var(--ink-3); }
+.ctl .row { display: flex; align-items: center; gap: 8px; }
+.ctl output { font-size: 12.5px; font-weight: 600; min-width: 36px; }
+input[type=range] { accent-color: var(--accent); width: 150px; }
+.controls { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-end; }
+
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--ink-3); font-family: var(--font-ui); font-size: 11px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+.legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.legend i.line { height: 2px; vertical-align: 3px; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--surface); border-radius: var(--radius-s); padding: 8px 10px; font-size: 12px; line-height: 1.45; min-width: 140px; transform: translate(-50%, calc(-100% - 10px)); white-space: nowrap; z-index: 5; }
+.tip .row { display: flex; justify-content: space-between; gap: 14px; }
+
+.mix { display: flex; height: 26px; border-radius: 4px; overflow: hidden; font-size: 11.5px; font-weight: 600; }
+.mix div { display: flex; align-items: center; justify-content: center; color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.compare { display: grid; gap: 10px; }
+.cmp { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 12px; align-items: center; font-size: 12.5px; }
+.cmp .bars { display: grid; gap: 3px; }
+.cmp .bars div { display: flex; align-items: center; gap: 8px; }
+.cmp .bars span.b { height: 10px; border-radius: 0 2px 2px 0; }
+.cmp .bars em { font-style: normal; font-size: 12px; color: var(--ink-2); }
+.heat td { text-align: center; font-weight: 600; }
+
+.callout { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 12px 14px; color: var(--ink-2); font-size: 12.5px; }
+.callout b { color: var(--ink); }
+
+/* shipment panel */
+.scrim { position: fixed; inset: 0; background: rgba(15,20,25,.32); z-index: 40; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw); background: var(--surface); z-index: 41; box-shadow: -12px 0 32px rgba(15,20,25,.18); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.drawer header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 16px 20px 12px; border-bottom: 1px solid var(--line); }
+.drawer header h2 { font-size: 17px; font-weight: 600; }
+.drawer header p { margin: 2px 0 0; color: var(--ink-3); font-size: 12.5px; }
+.close { border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--radius-s); width: 30px; height: 30px; cursor: pointer; font-size: 16px; line-height: 1; }
+.drawer .body { overflow-y: auto; padding: 14px 20px 28px; display: grid; gap: 18px; }
+.step { display: grid; gap: 8px; }
+.step h3 { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.step h3 .n { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--surface-2); color: var(--ink-2); font-size: 11.5px; }
+.timeline { position: relative; height: 64px; margin: 4px 8px 0; }
+.timeline .track { position: absolute; left: 0; right: 0; top: 22px; height: 4px; background: var(--surface-2); border-radius: 2px; }
+.timeline .prog { position: absolute; left: 0; top: 22px; height: 4px; background: var(--ink-3); border-radius: 2px; }
+.timeline .late { position: absolute; top: 22px; height: 4px; background: var(--t3); opacity: .55; }
+.timeline .m { position: absolute; top: 15px; transform: translateX(-50%); display: grid; justify-items: center; gap: 4px; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.timeline .m i { width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink-3); display: block; margin-top: 2px; }
+.timeline .m.now i { background: var(--ink); border-color: var(--ink); }
+.timeline .m.exp i { border-color: var(--t3); }
+.timeline .m.flag i { border-color: var(--accent); background: var(--accent); }
+.timeline .m span { position: relative; top: 2px; }
+.timeline .m.up { top: -4px; }
+.timeline .m.up span { order: -1; top: -2px; }
+.timeline .m.first { transform: translateX(-6px); justify-items: start; }
+.timeline .m.last { transform: translateX(calc(-100% + 6px)); justify-items: end; }
+.formula { font-size: 12.5px; background: var(--surface-2); border-radius: var(--radius-s); padding: 10px 12px; color: var(--ink-2); }
+.formula b { color: var(--ink); }
+.band { position: relative; height: 52px; margin-top: 2px; }
+.band .zones { position: absolute; left: 0; right: 0; top: 18px; display: flex; height: 10px; border-radius: 3px; overflow: hidden; }
+.band .zones div { height: 100%; }
+.band .mk { position: absolute; top: 14px; transform: translateX(-50%); width: 3px; height: 18px; background: var(--ink); border-radius: 1px; }
+.band .lbl { position: absolute; top: 32px; transform: translateX(-50%); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.band .lbl.s { top: -2px; color: var(--ink); font-weight: 600; }
+.actionbox { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 8px; }
+.actionbox .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.kv { display: grid; grid-template-columns: 150px 1fr; gap: 4px 12px; font-size: 12.5px; }
+.kv span { color: var(--ink-3); }
+
+@media (prefers-reduced-motion: no-preference) { .drawer { animation: slidein .18s ease-out; } @keyframes slidein { from { transform: translateX(24px); opacity: .6; } } }
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .kpi:nth-child(4) { border-left: 0; } .kpi:nth-child(n+4) { border-top: 1px solid var(--line); } .grid-2, .cols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 820px) {
+  .app { grid-template-columns: minmax(0, 1fr); background: var(--canvas); }
+  .side { position: sticky; top: 0; height: auto; z-index: 30; flex-direction: row; align-items: center; gap: 8px; padding: calc(8px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); overflow-x: auto; }
+  .brandmark { padding: 0 8px 0 0; } .brandmark div, .side-foot, .side-nav .grp { display: none; }
+  .side-nav { display: flex; } .side-nav a { white-space: nowrap; padding: 6px 10px; }
+  .main-col { padding: 0 max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi { border-left: 0 !important; border-top: 1px solid var(--line); } .kpi:first-child { border-top: 0; }
+  .mrow { grid-template-columns: 120px minmax(0, 1fr) 54px; } .cmp { grid-template-columns: minmax(0, 1fr); } .kv { grid-template-columns: 120px 1fr; }
+}
+</style>
+
+<div class="app">
+<aside class="side">
+  <div class="brandmark"><span class="logo" aria-hidden="true">DR</span><div><b>Delay Resolution</b><span>Inbound exception console</span></div></div>
+  <nav class="side-nav" aria-label="Sections">
+    <span class="grp">Operate</span>
+    <a href="#exceptions" data-tab="exceptions">Exceptions<span class="count" id="navOpen"></span></a>
+    <a href="#activity" data-tab="activity">Activity and overrides</a>
+    <span class="grp">Govern</span>
+    <a href="#policy" data-tab="policy">Policy and thresholds</a>
+    <span class="grp">Evaluate</span>
+    <a href="#model" data-tab="model">Model performance</a>
+    <a href="#impact" data-tab="impact">Workflow impact</a>
+    <span class="grp">Reference</span>
+    <a href="#about" data-tab="about">Architecture and paper</a>
+  </nav>
+  <div class="side-foot">
+    <span class="tag">Synthetic data</span>
+    <p>Model and simulation from the published paper (SSRN 7657262)</p>
+    <a href="https://github.com/Sophiagazula/agentic-delay-resolution">Paper code and data</a>
+    <p>Built by Sophia Gazula</p>
+  </div>
+</aside>
+
+<div class="main-col">
+  <div class="ctxbar">
+    <div><span>Snapshot</span><b id="ctxNow"></b></div>
+    <div><span>Agent run</span><b id="ctxRun"></b></div>
+    <div><span>Model</span><b id="ctxModel"></b></div>
+    <div><span>Policy in force</span><b id="ctxPolicy"></b></div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+<main>
+
+  <!-- EXCEPTIONS -->
+  <section class="panel" id="p-exceptions">
+    <div class="lede"><div><h2>Exceptions</h2>
+      <p>In-transit shipments the model expects to arrive more than 48 hours late, scored for business severity and routed by tier. Tier 1 is handled by the agent; Tier 2 and 3 need a planner.</p></div></div>
+    <div class="toolbar">
+      <div class="chips" id="exFilter" role="group" aria-label="Filter exceptions"></div>
+      <div class="filters">
+        <select id="fDest" aria-label="Destination DC"></select>
+        <select id="fCarrier" aria-label="Carrier"></select>
+        <input id="fSearch" class="search" type="search" placeholder="Shipment ID" aria-label="Search shipment ID">
+      </div>
+    </div>
+    <div class="tbl-wrap"><table id="exTable"></table></div>
+    <div class="more" id="exMore"></div>
+  </section>
+
+  <!-- ACTIVITY -->
+  <section class="panel" id="p-activity" hidden>
+    <div class="lede"><div><h2>Activity and overrides</h2>
+      <p>Everything the agent and planners did, newest first. Planner rejections are logged with a reason and feed threshold reviews and retraining.</p></div></div>
+    <div class="grid-2">
+      <div><div class="tbl-wrap"><table id="actTable"></table></div><div class="more" id="actMore"></div></div>
+      <div class="stack">
+        <div class="card"><h3>Planner decisions on Tier 2 proposals</h3><p class="hint">Since the start of the snapshot window. A rejection means the planner judged the delay alert a false alarm.</p><div id="overrideStats"></div></div>
+        <div class="card"><h3>Feedback loop</h3><ul class="clean">
+          <li>Every approval, rejection and override is stored with the shipment's features and the eventual outcome.</li>
+          <li>Rejection rate by carrier and lane is reviewed with business owners when thresholds are tuned.</li>
+          <li>The classifier is retrained on new outcomes; drift in inputs and in rejection rate triggers an earlier review.</li>
+        </ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- POLICY -->
+  <section class="panel" id="p-policy" hidden>
+    <div class="lede"><div><h2>Policy and thresholds</h2>
+      <p>The thresholds that decide how much the agent does on its own. Replayed on the full held-out test period, Jul–Dec 2025, 12,056 shipments.</p></div>
+      <button class="btn" id="polReset">Reset to paper values</button></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="controls">
+        <div class="ctl"><label for="pThr">Delay alert threshold, P(delay &gt; 48 h)</label><div class="row"><input type="range" id="pThr" min="0.2" max="0.9" step="0.01"><output id="pThrV"></output></div></div>
+        <div class="ctl"><label for="pS1">Tier 1 / Tier 2 boundary, severity</label><div class="row"><input type="range" id="pS1" min="0.05" max="0.6" step="0.01"><output id="pS1V"></output></div></div>
+        <div class="ctl"><label for="pS2">Tier 2 / Tier 3 boundary, severity</label><div class="row"><input type="range" id="pS2" min="0.1" max="0.9" step="0.01"><output id="pS2V"></output></div></div>
+      </div>
+      <div class="controls" style="margin-top:12px">
+        <div class="ctl"><label for="wInv">Weight: inventory exposure</label><div class="row"><input type="range" id="wInv" min="0" max="1" step="0.05"><output id="wInvV"></output></div></div>
+        <div class="ctl"><label for="wSla">Weight: SLA exposure</label><div class="row"><input type="range" id="wSla" min="0" max="1" step="0.05"><output id="wSlaV"></output></div></div>
+        <div class="ctl"><label for="wVal">Weight: order value</label><div class="row"><input type="range" id="wVal" min="0" max="1" step="0.05"><output id="wValV"></output></div></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3>Alert quality across thresholds</h3><p class="hint">Precision, recall and F1 of the delay alert on the test period. The paper picked 0.56 by F1 on the validation quarter.</p>
+        <div class="chart" id="prChart"></div>
+        <div class="legend"><span><i class="line" style="background:var(--accent)"></i>Precision</span><span><i class="line" style="background:var(--t3)"></i>Recall</span><span><i class="line" style="background:var(--ink-3)"></i>F1</span></div>
+      </div>
+      <div class="stack">
+        <div class="card"><h3>At these settings</h3><div class="stat3" id="polStats" style="border-top:0;margin-top:0"></div></div>
+        <div class="card"><h3>Where flagged shipments go</h3><p class="hint" id="mixHint"></p><div class="mix" id="mixBar"></div>
+          <div class="legend"><span><i style="background:var(--t1)"></i>Tier 1 autonomous</span><span><i style="background:var(--t2)"></i>Tier 2 approval</span><span><i style="background:var(--t3)"></i>Tier 3 escalation</span></div></div>
+        <div class="card"><h3>Planner workload, test period</h3><p class="hint">Expected handling hours from the paper's mean task times (investigate 3 h, false alarm 1 h, approve 0.5 h, reject 0.3 h).</p><div class="compare" id="hoursBars"></div></div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:14px" id="polNote"></div>
+  </section>
+
+  <!-- MODEL -->
+  <section class="panel" id="p-model" hidden>
+    <div class="lede"><div><h2>Model performance</h2>
+      <p>Random Forest delay classifier compared with logistic regression and the manual rule (carrier ETA slip over 48 h). Time-based split, so the test period is entirely in the future of training.</p></div></div>
+    <div class="cols">
+      <div class="card"><h3>Held-out test period</h3><p class="hint" id="splitHint"></p><div class="tbl-wrap"><table id="metricsTable"></table></div>
+        <div class="stat3" id="confStats"></div></div>
+      <div class="card"><h3>What drives the prediction</h3><p class="hint">Random Forest feature importance, one-hot groups combined.</p><div class="metric-rows" id="impBars"></div></div>
+      <div class="card"><h3>Calibration</h3><p class="hint">Predicted probability vs. observed delay rate by bucket. Class weighting inflates mid-range probabilities.</p>
+        <div class="chart" id="calChart"></div>
+        <div class="legend"><span><i class="line" style="background:var(--accent)"></i>Model</span><span><i class="line" style="background:var(--ink-3)"></i>Perfect calibration</span></div></div>
+      <div class="card"><h3>Reading these numbers</h3><ul class="clean">
+        <li>The manual rule is precise (0.93) but catches only 21% of delays in transit, and late. The model catches 68% at about 40% of planned transit.</li>
+        <li>Precision of 0.58 is acceptable because Tier 2 rejections cost minutes, while a missed delay costs a full investigation after the fact.</li>
+        <li>The most important signal is lateness at the last milestone, followed by the carrier's recent late rate.</li>
+        <li>Before using probabilities as severity weights in production, I would calibrate them (isotonic regression on the validation quarter).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- IMPACT -->
+  <section class="panel" id="p-impact" hidden>
+    <div class="lede"><div><h2>Workflow impact</h2>
+      <p>Discrete-event simulation of the test period with 8 planners on a 10-hour weekday schedule, 10 replications, manual workflow vs. agent workflow. Simulation results under stated assumptions, not a live deployment.</p></div></div>
+    <div class="grid-2">
+      <div class="card"><h3>Manual vs. agent</h3><p class="hint">Mean of 10 replications. Time to resolution measured on true delays.</p><div class="compare" id="impBarsCmp"></div>
+        <div class="legend"><span><i style="background:var(--neutral-mark)"></i>Manual workflow</span><span><i style="background:var(--accent)"></i>Agent workflow</span></div></div>
+      <div class="stack">
+        <div class="card"><h3>Sensitivity</h3><p class="hint">Reduction in mean time to resolution across staffing and task-time assumptions.</p><div class="tbl-wrap"><table class="heat" id="sensTable"></table></div></div>
+        <div class="card"><h3>Why the agent is faster</h3><ul class="clean">
+          <li>Alerts fire at about 40% of planned transit, a median of about 19 days before planned arrival, instead of after a missed date.</li>
+          <li>A quarter of exceptions are resolved in minutes without a planner.</li>
+          <li>Planners spend 30 minutes approving a ready proposal instead of 3 hours investigating.</li>
+          <li>Freed capacity shortens the queue for everything else, which is why gains grow when planners are stretched.</li>
+        </ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="panel" id="p-about" hidden>
+    <div class="lede"><div><h2>Architecture and paper</h2>
+      <p>Sense, predict, assess, decide, act, learn. This console is a working front end on the published code; nothing here comes from a real company.</p></div></div>
+    <div class="card" style="margin-bottom:14px"><img src="architecture.png" alt="Architecture: sense, predict, assess, decide, act, with human planners and a learning loop" style="width:100%;height:auto;display:block"></div>
+    <div class="cols">
+      <div class="card"><h3>Paper</h3><p style="margin:4px 0 8px">Gazula, S. (2026). <i>Tiered-autonomy agentic decision support for shipment delay exception management: Architecture and simulation-based evaluation.</i> SSRN.</p>
+        <ul class="clean"><li><a href="https://doi.org/10.2139/ssrn.7657262">DOI 10.2139/ssrn.7657262</a></li><li><a href="https://github.com/Sophiagazula/agentic-delay-resolution">Code and synthetic data on GitHub</a></li></ul></div>
+      <div class="card"><h3>How this console is built</h3><ul class="clean">
+        <li>Runs the paper's <code>experiment.py</code> unchanged; all 81 published results reproduce exactly.</li>
+        <li>An export step takes the model, test set, severity and tiers and adds per-shipment risk drivers from the forest's decision paths.</li>
+        <li>The policy page replays any threshold on the 12,056 test shipments in the browser.</li></ul></div>
+      <div class="card"><h3>From the paper</h3><ul class="clean">
+        <li>48,000 synthetic shipments, 2024–2025, 12 carriers, 32 lanes, 72% ocean.</li>
+        <li>Random Forest, threshold 0.56, severity S = p × (0.5 inventory + 0.3 SLA + 0.2 value), tiers at 0.20 and 0.40.</li>
+        <li>Agent runs every 4 hours; workflow simulation with planners, schedules and task times.</li></ul></div>
+      <div class="card"><h3>Added for this console</h3><ul class="clean">
+        <li>Snapshot moment (Tue 14 Oct 2025, 10:00), shipment IDs and workflow status (approved, rejected, escalated) are illustrative.</li>
+        <li>Tier 2 proposals follow the largest severity driver: inventory → reallocate, SLA → expedite, value → reroute.</li>
+        <li>Risk drivers use tree-path contributions; they explain this model, not causes in the world.</li></ul></div>
+    </div>
+  </section>
+</main>
+</div>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-labelledby="dwTitle">
+  <header><div><h2 id="dwTitle"></h2><p id="dwSub"></p></div><button class="close" id="dwClose" aria-label="Close shipment detail">×</button></header>
+  <div class="body" id="dwBody"></div>
+</aside>
+
+<script src="data.js"></script>
+<script>
+(() => {
+const D = window.DRA, $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmtInt = x => Math.round(x).toLocaleString("en-US");
+const fmtK = x => { const a = Math.abs(x); return a >= 1e6 ? (x / 1e6).toFixed(1) + "M" : a >= 1e3 ? (x / 1e3).toFixed(a >= 1e5 ? 0 : 1) + "K" : Math.round(x).toString(); };
+const usd = x => "$" + fmtK(x);
+const pct = (x, d = 0) => (x * 100).toFixed(d) + "%";
+const NOW = new Date(D.now.replace(" ", "T"));
+const day = s => new Date(s.length > 10 ? s.replace(" ", "T") : s + "T12:00");
+const fmtD = s => day(s).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const fmtDT = s => day(s).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+const daysFromNow = s => Math.round((day(s) - NOW) / 864e5);
+const TIER = { 1: ["t1", "Tier 1 · Autonomous"], 2: ["t2", "Tier 2 · Approval"], 3: ["t3", "Tier 3 · Escalation"] };
+const tierPill = t => `<span class="pill ${TIER[t][0]}">${TIER[t][1]}</span>`;
+const SH = D.shipments;
+const byId = Object.fromEntries(SH.map(s => [s.id, s]));
+const LOG = [];   // session actions
+
+$("#ctxNow").textContent = NOW.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+$("#ctxRun").textContent = "Every 4 hours, last run 08:00";
+$("#ctxModel").textContent = `Random Forest, alert at P ≥ ${D.threshold.toFixed(2)}`;
+$("#ctxPolicy").textContent = `Tier boundaries ${D.S1.toFixed(2)} / ${D.S2.toFixed(2)}`;
+
+// ----------------------------------------------------------- KPIs
+function openCount() { return SH.filter(s => s.status === "awaiting" || s.status === "escalated").length; }
+function renderKpis() {
+  const k = D.snapshot, open = openCount(), aw = SH.filter(s => s.status === "awaiting").length, esc_ = SH.filter(s => s.status === "escalated").length;
+  $("#kpis").innerHTML = `
+    <div class="kpi"><div class="l">In transit, monitored</div><div class="v">${fmtInt(k.inTransit)}</div><div class="d">${fmtInt(k.monitoring)} on track</div></div>
+    <div class="kpi"><div class="l">Delay alerts</div><div class="v">${fmtInt(k.flagged)}</div><div class="d">${k.new24} new in last 24 h</div></div>
+    <div class="kpi"><div class="l">Handled by agent</div><div class="v">${fmtInt(k.byTier["1"])}</div><div class="d">Tier 1, no planner time</div></div>
+    <div class="kpi ${open ? "attn" : ""}"><div class="l">Needs a planner now</div><div class="v">${open}</div><div class="d">${aw} to approve, ${esc_} escalated</div></div>
+    <div class="kpi"><div class="l">Order value at risk</div><div class="v">${usd(k.valueAtRisk)}</div><div class="d">Value × delay probability</div></div>`;
+  $("#navOpen").textContent = open || "";
+}
+
+// ----------------------------------------------------------- exceptions table
+const EX = { filter: "open", sort: "S", dir: "descending", dest: "", carrier: "", q: "", limit: 50 };
+const FILTERS = [
+  ["open", "Needs action", s => s.status === "awaiting" || s.status === "escalated"],
+  ["all", "All alerts", () => true],
+  ["t1", "Tier 1", s => s.tier === 1], ["t2", "Tier 2", s => s.tier === 2], ["t3", "Tier 3", s => s.tier === 3],
+];
+const SORTS = { id: s => s.id, planned: s => s.planned, p: s => s.p, delay: s => s.expDelayDays, S: s => s.S, tier: s => s.tier, value: s => s.value };
+$("#fDest").innerHTML = `<option value="">All DCs</option>` + [...new Set(SH.map(s => s.dest))].sort().map(d => `<option>${d}</option>`).join("");
+$("#fCarrier").innerHTML = `<option value="">All carriers</option>` + [...new Set(SH.map(s => s.carrier))].sort().map(d => `<option>${d}</option>`).join("");
+$("#fDest").onchange = e => { EX.dest = e.target.value; EX.limit = 50; renderExceptions(); };
+$("#fCarrier").onchange = e => { EX.carrier = e.target.value; EX.limit = 50; renderExceptions(); };
+$("#fSearch").oninput = e => { EX.q = e.target.value.trim().toUpperCase(); EX.limit = 50; renderExceptions(); };
+
+function sevBar(s) {
+  const w = 70, a = 0.5 * s.cInv, b = 0.3 * s.cSla, c = 0.2 * s.cVal, tot = a + b + c || 1;
+  return `<span class="sev"><span class="b" title="Inventory ${pct(a / tot)}, SLA ${pct(b / tot)}, value ${pct(c / tot)}"><i class="c-inv" style="width:${w * s.S * a / tot}px"></i><i class="c-sla" style="width:${w * s.S * b / tot}px"></i><i class="c-val" style="width:${w * s.S * c / tot}px"></i></span>${s.S.toFixed(2)}</span>`;
+}
+function renderExceptions() {
+  const pool = SH.filter(s => (!EX.dest || s.dest === EX.dest) && (!EX.carrier || s.carrier === EX.carrier) && (!EX.q || s.id.includes(EX.q)));
+  $("#exFilter").innerHTML = FILTERS.map(([id, l, f]) => `<button class="chip" data-f="${id}" aria-pressed="${EX.filter === id}">${l}<span class="c">${pool.filter(f).length}</span></button>`).join("");
+  $$("#exFilter [data-f]").forEach(b => b.onclick = () => { EX.filter = b.dataset.f; EX.limit = 50; renderExceptions(); });
+  const f = FILTERS.find(x => x[0] === EX.filter)[2], key = SORTS[EX.sort], dir = EX.dir === "ascending" ? 1 : -1;
+  const rows = pool.filter(f).sort((a, b) => { const x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * dir; });
+  const sb = (k, l) => `<button data-sort="${k}" aria-sort="${EX.sort === k ? EX.dir : "none"}">${l}</button>`;
+  $("#exTable").innerHTML = `<thead><tr><th>${sb("id", "Shipment")}</th><th>Lane</th><th>${sb("planned", "Planned arrival")}</th><th>${sb("p", "P(delay > 48 h)")}</th><th class="n">${sb("delay", "Exp. delay")}</th><th>${sb("S", "Severity")}</th><th>${sb("tier", "Tier")}</th><th>Status</th></tr></thead><tbody>` +
+    (rows.slice(0, EX.limit).map(s => `<tr class="clickable" data-id="${s.id}" tabindex="0">
+      <td><b>${s.id}</b><span class="sub">${s.mode} · ${s.carrier}</span></td>
+      <td>${esc(s.origin)} → ${esc(s.dest)}<span class="sub">${s.plannedDays} d planned transit</span></td>
+      <td>${fmtD(s.planned)}<span class="sub">in ${daysFromNow(s.planned)} days</span></td>
+      <td><span class="pbar"><span class="b"><span style="width:${s.p * 100}%"></span></span>${s.p.toFixed(2)}</span></td>
+      <td class="n">${s.expDelayDays.toFixed(1)} d</td>
+      <td>${sevBar(s)}</td>
+      <td>${tierPill(s.tier)}</td>
+      <td><span class="st ${s.status}">${esc(s.statusText)}</span></td></tr>`).join("") || `<tr><td colspan="8" style="color:var(--ink-3)">No shipments match these filters.</td></tr>`) + "</tbody>";
+  $("#exMore").innerHTML = `<span>Showing ${Math.min(EX.limit, rows.length)} of ${rows.length}</span>` + (rows.length > EX.limit ? `<button class="btn" id="exMoreBtn">Show 50 more</button>` : "");
+  if ($("#exMoreBtn")) $("#exMoreBtn").onclick = () => { EX.limit += 50; renderExceptions(); };
+  $$("#exTable [data-sort]").forEach(b => b.onclick = () => { const k = b.dataset.sort; if (EX.sort === k) EX.dir = EX.dir === "descending" ? "ascending" : "descending"; else { EX.sort = k; EX.dir = (k === "id" || k === "planned") ? "ascending" : "descending"; } renderExceptions(); });
+  $$("#exTable tr[data-id]").forEach(tr => { tr.onclick = () => openShip(tr.dataset.id); tr.onkeydown = e => { if (e.key === "Enter") openShip(tr.dataset.id); }; });
+}
+
+// ----------------------------------------------------------- shipment panel
+let DW = null;
+function openShip(id) { DW = id; renderDrawer(); $("#drawer").hidden = false; $("#scrim").hidden = false; $("#dwClose").focus(); }
+function closeShip() { const last = DW; DW = null; $("#drawer").hidden = true; $("#scrim").hidden = true; $(`#exTable tr[data-id="${last}"]`)?.focus(); }
+$("#dwClose").onclick = closeShip; $("#scrim").onclick = closeShip;
+document.addEventListener("keydown", e => { if (e.key === "Escape" && DW) closeShip(); });
+
+function timeline(s) {
+  const t0 = day(s.shipped), t1 = day(s.expected), span = t1 - t0 || 1, x = d => Math.max(0, Math.min(100, (day(d) - t0) / span * 100));
+  const nowX = Math.max(0, Math.min(100, (NOW - t0) / span * 100));
+  const m = (pos, cls, label, up) => `<div class="m ${cls} ${up ? "up" : ""}" style="left:${pos}%"><i></i><span>${label}</span></div>`;
+  return `<div class="timeline"><div class="track"></div><div class="prog" style="width:${nowX}%"></div>
+    <div class="late" style="left:${x(s.planned)}%;width:${100 - x(s.planned)}%"></div>
+    ${m(0, "first", "Shipped " + fmtD(s.shipped))}${m(x(s.flagAt), "flag", "Alert " + fmtD(s.flagAt), true)}${m(nowX, "now", "Now")}
+    ${m(x(s.planned), "", "Planned " + fmtD(s.planned), true)}${m(100, "exp last", "Expected " + fmtD(s.expected))}</div>`;
+}
+function renderDrawer() {
+  const s = byId[DW]; if (!s) return;
+  $("#dwTitle").textContent = s.id;
+  $("#dwSub").textContent = `${s.origin} → ${s.dest}, ${s.mode.toLowerCase()} with ${s.carrier}, ${s.plannedDays}-day planned transit`;
+  const maxC = Math.max(...s.drivers.map(d => d.c), 0.05);
+  const inv = 0.5 * s.cInv, sla = 0.3 * s.cSla, val = 0.2 * s.cVal;
+  const sx = v => Math.min(100, v / 0.8 * 100);
+  let act = "";
+  if (s.tier === 1) act = `<div class="actionbox"><div><b>Done by the agent</b> at ${fmtDT(s.flagAt)}</div><ul class="clean" style="margin:0"><li>ETA moved to ${fmtD(s.expected)} in the TMS</li><li>DC ${esc(s.dest)} and order owner notified in Slack</li></ul><div class="hint" style="margin:0">Low severity: ${s.daysSupply.toFixed(1)} days of supply covers the expected ${s.expDelayDays.toFixed(1)}-day delay.</div></div>`;
+  if (s.tier === 2) {
+    const pending = s.status === "awaiting";
+    act = `<div class="actionbox"><div><b>Agent proposal:</b> ${esc(s.proposal)}</div>
+      <div class="hint" style="margin:0">Based on the largest severity driver. ETA already updated and stakeholders notified.</div>
+      ${pending ? `<div class="row"><button class="btn primary" id="aApprove">Approve</button><button class="btn" id="aReject">Reject as false alarm</button>
+        <select id="aReason" aria-label="Rejection reason"><option value="">Reason (required to reject)</option><option>Carrier confirmed on schedule</option><option>Milestone data late, not shipment</option><option>Stock covered from another order</option><option>Other</option></select></div>`
+        : `<div><span class="st ${s.status}">${esc(s.statusText)}</span></div>`}</div>`;
+  }
+  if (s.tier === 3) {
+    const open = s.status === "escalated";
+    act = `<div class="actionbox"><div><b>Escalated to a planner</b> with full context</div>
+      <div class="kv"><span>Inventory</span><div>${s.daysSupply.toFixed(1)} days of supply vs. ${s.expDelayDays.toFixed(1)}-day expected delay</div>
+      <span>Customer SLA</span><div>${s.sla ? "Linked to a customer SLA" : "No SLA linked"}</div>
+      <span>Order value</span><div>${usd(s.value)}</div>
+      <span>Options to consider</span><div>Expedite, split shipment, reallocate stock, notify customer</div></div>
+      ${open ? `<div class="row"><button class="btn primary" id="aResolve">Mark resolved</button></div>` : `<div><span class="st ${s.status}">${esc(s.statusText)}</span></div>`}</div>`;
+  }
+  $("#dwBody").innerHTML = `
+    <div>${tierPill(s.tier)} <span class="st ${s.status}" style="margin-left:8px">${esc(s.statusText)}</span></div>
+    <div class="step"><h3><span class="n">1</span>Sense</h3>${timeline(s)}
+      <div class="kv"><span>Late at last milestone</span><div>${s.lateMs} h</div><span>Customs hold</span><div>${s.custom ? "Yes" : "No"}</div><span>Weather severity</span><div>${s.weather.toFixed(2)}</div></div></div>
+    <div class="step"><h3><span class="n">2</span>Predict</h3>
+      <div><b style="font-size:20px">${s.p.toFixed(2)}</b> <span class="hint">probability of arriving more than 48 h late (alert at ${D.threshold.toFixed(2)})</span></div>
+      <div class="hint" style="margin:0">Why the model thinks so: contributions from the forest's decision paths, starting from a base rate of ${s.base.toFixed(2)}.</div>
+      <div class="metric-rows">${s.drivers.map(d => `<div class="mrow me"><span>${esc(d.f)} <span class="hint">${esc(d.v)}</span></span><div class="bar"><span style="width:${d.c / maxC * 100}%"></span></div><span class="val">+${d.c.toFixed(2)}</span></div>`).join("") || '<div class="hint">No single driver stands out.</div>'}</div></div>
+    <div class="step"><h3><span class="n">3</span>Assess</h3>
+      <div class="formula">Severity = P × (0.5 × inventory + 0.3 × SLA + 0.2 × value)<br>
+        <b>${s.S.toFixed(3)}</b> = ${s.p.toFixed(2)} × (0.5 × ${s.cInv.toFixed(2)} + 0.3 × ${s.cSla.toFixed(2)} + 0.2 × ${s.cVal.toFixed(2)})</div>
+      <div class="kv"><span><i class="legend" style="display:inline"><i class="c-inv"></i></i>Inventory exposure</span><div>${s.cInv.toFixed(2)}: expected delay ${s.expDelayDays.toFixed(1)} d ÷ days of supply ${s.daysSupply.toFixed(1)}</div>
+        <span><i class="legend" style="display:inline"><i class="c-sla"></i></i>SLA exposure</span><div>${s.cSla.toFixed(2)}: ${s.sla ? "customer SLA linked" : "no SLA linked"}</div>
+        <span><i class="legend" style="display:inline"><i class="c-val"></i></i>Order value</span><div>${s.cVal.toFixed(2)}: ${usd(s.value)} vs. 95th percentile</div></div></div>
+    <div class="step"><h3><span class="n">4</span>Decide</h3>
+      <div class="band"><div class="zones"><div style="width:${sx(D.S1)}%;background:var(--t1)"></div><div style="width:${sx(D.S2) - sx(D.S1)}%;background:var(--t2)"></div><div style="flex:1;background:var(--t3)"></div></div>
+        <div class="mk" style="left:${sx(s.S)}%"></div><div class="lbl s" style="left:${sx(s.S)}%;transform:translateX(${sx(s.S) > 75 ? "-100%" : sx(s.S) < 20 ? "0" : "-50%"})">This shipment ${s.S.toFixed(2)}</div>
+        <div class="lbl" style="left:${sx(D.S1)}%">${D.S1.toFixed(2)}</div><div class="lbl" style="left:${sx(D.S2)}%">${D.S2.toFixed(2)}</div></div>
+      <div class="hint" style="margin:0">${s.tier === 1 ? "Below 0.20: the agent acts on its own; no spend involved." : s.tier === 2 ? "Between 0.20 and 0.40: the agent proposes, a planner approves." : "Above 0.40: the planner leads; the agent prepares the case."}</div></div>
+    <div class="step"><h3><span class="n">5</span>Act</h3>${act}</div>`;
+  const log = (actor, what) => { LOG.unshift({ t: new Date(), id: s.id, actor, what, tier: s.tier }); };
+  if ($("#aApprove")) $("#aApprove").onclick = () => { s.status = "approved"; s.statusText = "Approved by you"; log("You", "Approved: " + s.proposal); refresh(); };
+  if ($("#aReject")) $("#aReject").onclick = () => { const r = $("#aReason").value; if (!r) { $("#aReason").focus(); $("#aReason").style.borderColor = "var(--crit)"; return; } s.status = "rejected"; s.statusText = "Rejected by you: " + r; log("You", "Rejected as false alarm: " + r); refresh(); };
+  if ($("#aResolve")) $("#aResolve").onclick = () => { s.status = "resolved"; s.statusText = "Resolved by you"; log("You", "Escalation resolved"); refresh(); };
+}
+function refresh() { renderKpis(); renderExceptions(); renderDrawer(); }
+
+// ----------------------------------------------------------- activity
+const ACT = { limit: 25 };
+function renderActivity() {
+  const ev = [];
+  SH.forEach(s => {
+    const t = day(s.flagAt);
+    if (s.tier === 1) ev.push({ t: new Date(+t + 9 * 60e3), id: s.id, actor: "Agent", what: `ETA updated to ${fmtD(s.expected)}, stakeholders notified`, tier: 1 });
+    if (s.tier === 2) {
+      ev.push({ t, id: s.id, actor: "Agent", what: "Proposed: " + s.proposal, tier: 2 });
+      if (s.status === "approved" && !s.statusText.includes("you")) ev.push({ t: new Date(+t + 3.5 * 36e5), id: s.id, actor: "Planner", what: "Approved proposal", tier: 2 });
+      if (s.status === "rejected" && !s.statusText.includes("you")) ev.push({ t: new Date(+t + 2.5 * 36e5), id: s.id, actor: "Planner", what: "Rejected as false alarm", tier: 2 });
+    }
+    if (s.tier === 3) {
+      ev.push({ t, id: s.id, actor: "Agent", what: "Escalated with full context", tier: 3 });
+      if (s.status === "resolved" && !s.statusText.includes("you")) ev.push({ t: new Date(+t + 30 * 36e5), id: s.id, actor: "Planner", what: "Escalation resolved", tier: 3 });
+    }
+  });
+  const all = [...LOG, ...ev.filter(e => e.t <= NOW).sort((a, b) => b.t - a.t)];
+  $("#actTable").innerHTML = `<thead><tr><th>Time</th><th>Shipment</th><th>By</th><th>Action</th><th>Tier</th></tr></thead><tbody>` +
+    all.slice(0, ACT.limit).map(e => `<tr class="clickable" data-id="${e.id}"><td>${e.t.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</td><td>${e.id}</td><td>${e.actor === "You" ? "<b>You</b>" : e.actor}</td><td style="white-space:normal;min-width:220px">${esc(e.what)}</td><td>${tierPill(e.tier)}</td></tr>`).join("") + "</tbody>";
+  $("#actMore").innerHTML = `<span>Showing ${Math.min(ACT.limit, all.length)} of ${fmtInt(all.length)} events</span>` + (all.length > ACT.limit ? `<button class="btn" id="actMoreBtn">Show more</button>` : "");
+  if ($("#actMoreBtn")) $("#actMoreBtn").onclick = () => { ACT.limit += 25; renderActivity(); };
+  $$("#actTable tr[data-id]").forEach(tr => tr.onclick = () => openShip(tr.dataset.id));
+  const t2 = SH.filter(s => s.tier === 2), ap = t2.filter(s => s.status === "approved").length, rj = t2.filter(s => s.status === "rejected").length, aw = t2.filter(s => s.status === "awaiting").length;
+  const byCar = {}; t2.filter(s => s.status === "approved" || s.status === "rejected").forEach(s => { (byCar[s.carrier] ||= [0, 0])[s.status === "rejected" ? 1 : 0]++; });
+  const top = Object.entries(byCar).map(([c, [a, r]]) => [c, r / (a + r), a + r]).filter(x => x[2] >= 8).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  $("#overrideStats").innerHTML = `<div class="stat3" style="border-top:0;margin-top:0"><div><span>Approved</span><b>${ap}</b></div><div><span>Rejected</span><b>${rj}</b></div><div><span>Awaiting</span><b>${aw}</b></div></div>
+    <p class="hint" style="margin:12px 0 6px">Rejection rate by carrier (8+ decisions)</p>
+    <div class="metric-rows">${top.map(([c, r, n]) => `<div class="mrow"><span>${c} <span class="hint">${n} decisions</span></span><div class="bar"><span style="width:${r * 100}%;background:var(--t3)"></span></div><span class="val">${pct(r)}</span></div>`).join("")}</div>`;
+}
+
+// ----------------------------------------------------------- policy replay
+const P = D.policy, N = P.p.length, H = D.handling;
+const POL = { thr: D.threshold, s1: D.S1, s2: D.S2, wi: D.weights.inv, ws: D.weights.sla, wv: D.weights.val };
+function evalPolicy(o) {
+  let tp = 0, fp = 0, fn = 0, t1 = 0, t2 = 0, t3 = 0, hours = 0;
+  for (let i = 0; i < N; i++) {
+    const y = P.y[i], f = P.p[i] >= o.thr;
+    if (!f) { if (y) { fn++; hours += H.investigate; } continue; }
+    y ? tp++ : fp++;
+    const S = P.p[i] * (o.wi * P.cInv[i] + o.ws * P.cSla[i] + o.wv * P.cVal[i]);
+    if (S < o.s1) t1++; else if (S < o.s2) { t2++; hours += y ? H.approve : H.reject; } else { t3++; hours += y ? H.investigate : H.fp; }
+  }
+  const prec = tp / Math.max(1, tp + fp), rec = tp / Math.max(1, tp + fn);
+  return { tp, fp, fn, prec, rec, f1: 2 * prec * rec / Math.max(1e-9, prec + rec), t1, t2, t3, hours, flagged: tp + fp };
+}
+let curve = null;
+function prCurve() {
+  if (curve) return curve;
+  const ps = P.p.map((p, i) => [p, P.y[i]]).sort((a, b) => b[0] - a[0]), pos = P.y.reduce((s, v) => s + v, 0);
+  curve = []; let k = 0, tp = 0, n = 0;
+  for (let t = 0.9; t >= 0.199; t -= 0.01) { while (k < ps.length && ps[k][0] >= t) { tp += ps[k][1]; n++; k++; } const pr = tp / Math.max(1, n), rc = tp / pos; curve.push({ t, pr, rc, f1: 2 * pr * rc / Math.max(1e-9, pr + rc) }); }
+  return curve.reverse();
+}
+function renderPolicy() {
+  const ids = [["pThr", "thr", 2], ["pS1", "s1", 2], ["pS2", "s2", 2], ["wInv", "wi", 2], ["wSla", "ws", 2], ["wVal", "wv", 2]];
+  ids.forEach(([id, k, d]) => { $("#" + id).value = POL[k]; $("#" + id + "V").textContent = (+POL[k]).toFixed(d); });
+  const r = evalPolicy(POL), base = evalPolicy({ thr: D.threshold, s1: D.S1, s2: D.S2, wi: .5, ws: .3, wv: .2 });
+  const manual = D.expectedHours.manual;
+  $("#polStats").innerHTML = `<div><span>Delays caught in transit</span><b>${pct(r.rec)}</b></div><div><span>Alert precision</span><b>${pct(r.prec)}</b></div><div><span>Handled with no planner</span><b>${pct(r.t1 / Math.max(1, r.flagged))}</b></div>`;
+  const tot = Math.max(1, r.flagged);
+  $("#mixHint").textContent = `${fmtInt(r.flagged)} alerts in the test period: ${fmtInt(r.t1)} autonomous, ${fmtInt(r.t2)} for approval, ${fmtInt(r.t3)} escalated.`;
+  $("#mixBar").innerHTML = [[r.t1, "var(--t1)"], [r.t2, "var(--t2)"], [r.t3, "var(--t3)"]].map(([v, c]) => `<div style="width:${v / tot * 100}%;background:${c}">${v / tot > .08 ? pct(v / tot) : ""}</div>`).join("");
+  const mx = Math.max(manual, r.hours);
+  $("#hoursBars").innerHTML = [["Manual workflow (rule alerts)", manual, "var(--neutral-mark)"], ["Agent, paper settings", base.hours, "var(--line-strong)"], ["Agent, these settings", r.hours, "var(--accent)"]].map(([l, v, c]) =>
+    `<div class="cmp"><span>${l}</span><div class="bars"><div><span class="b" style="width:${v / mx * 62}%;background:${c}"></span><em>${fmtInt(v)} h</em></div></div></div>`).join("");
+  const dRec = r.rec - base.rec, dH = r.hours - base.hours;
+  const same = Math.abs(dRec) < 0.0005 && Math.abs(dH) < 1;
+  $("#polNote").innerHTML = (same ? `<b>These are the paper's settings.</b> Move a slider to see the trade-off.` : `<b>Trade-off at these settings.</b> Compared with the paper's policy, recall is ${dRec >= 0 ? "+" : "−"}${pct(Math.abs(dRec), 1)} and planner time is ${dH >= 0 ? "+" : "−"}${fmtInt(Math.abs(dH))} hours over the test period.`) + ` Lowering the alert threshold catches more delays but sends more false alarms to planners; lowering the Tier 1 boundary keeps more decisions with people. These are business choices, set with the owners of inventory and customer SLAs.`;
+  drawPR(r);
+}
+function drawPR(r) {
+  const el = $("#prChart"), w = Math.max(320, el.clientWidth || 600), h = Math.round(Math.max(220, w * 0.5)), m = { l: 40, r: 12, t: 10, b: 28 };
+  const c = prCurve(), x = t => m.l + (t - 0.2) / 0.7 * (w - m.l - m.r), y = v => h - m.b - v * (h - m.t - m.b);
+  let g = "";
+  for (let v = 0; v <= 1.001; v += 0.25) g += `<line x1="${m.l}" x2="${w - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${pct(v)}</text>`;
+  for (let t = 0.2; t <= 0.901; t += 0.1) g += `<text x="${x(t)}" y="${h - 8}" text-anchor="middle">${t.toFixed(1)}</text>`;
+  const line = (k, col, dash) => `<polyline points="${c.map(d => `${x(d.t)},${y(d[k])}`).join(" ")}" fill="none" stroke="${col}" stroke-width="2" ${dash ? 'stroke-dasharray="4 3"' : ""}/>`;
+  g += line("pr", "var(--accent)") + line("rc", "var(--t3)") + line("f1", "var(--ink-3)", true);
+  g += `<line x1="${x(POL.thr)}" x2="${x(POL.thr)}" y1="${m.t}" y2="${h - m.b}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  g += `<circle cx="${x(POL.thr)}" cy="${y(r.prec)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/><circle cx="${x(POL.thr)}" cy="${y(r.rec)}" r="4" fill="var(--t3)" stroke="var(--surface)" stroke-width="2"/>`;
+  g += `<text x="${x(POL.thr) + 6}" y="${m.t + 12}" style="fill:var(--ink)">threshold ${POL.thr.toFixed(2)}</text>`;
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Precision, recall and F1 by threshold">${g}</svg>`;
+}
+[["pThr", "thr"], ["pS1", "s1"], ["pS2", "s2"], ["wInv", "wi"], ["wSla", "ws"], ["wVal", "wv"]].forEach(([id, k]) =>
+  $("#" + id).addEventListener("input", e => { POL[k] = +e.target.value; if (POL.s2 < POL.s1) { if (k === "s1") POL.s2 = POL.s1; else POL.s1 = POL.s2; } renderPolicy(); }));
+$("#polReset").onclick = () => { Object.assign(POL, { thr: D.threshold, s1: D.S1, s2: D.S2, wi: .5, ws: .3, wv: .2 }); renderPolicy(); };
+
+// ----------------------------------------------------------- model
+function renderModel() {
+  const pp = D.paper, M = pp.metrics;
+  $("#splitHint").textContent = `Train Jan 2024 – Mar 2025 (${fmtInt(pp.n_train)}), validation Apr – Jun 2025 (${fmtInt(pp.n_val)}), test Jul – Dec 2025 (${fmtInt(pp.n_test)}).`;
+  const row = (l, m, me) => `<tr${me ? ' style="font-weight:600"' : ""}><td>${l}</td><td class="n">${m.precision.toFixed(2)}</td><td class="n">${m.recall.toFixed(2)}</td><td class="n">${m.f1.toFixed(2)}</td><td class="n">${m.roc_auc ? m.roc_auc.toFixed(2) : "—"}</td><td class="n">${m.pr_auc ? m.pr_auc.toFixed(2) : "—"}</td></tr>`;
+  $("#metricsTable").innerHTML = `<thead><tr><th>Approach</th><th class="n">Precision</th><th class="n">Recall</th><th class="n">F1</th><th class="n">ROC-AUC</th><th class="n">PR-AUC</th></tr></thead><tbody>${row("Manual rule (ETA slip > 48 h)", M.rule)}${row("Logistic regression", M.lr)}${row("Random Forest (used)", M.rf, true)}</tbody>`;
+  const c = D.confusion;
+  $("#confStats").innerHTML = `<div><span>Delays caught</span><b>${fmtInt(c.tp)}</b></div><div><span>False alarms</span><b>${fmtInt(c.fp)}</b></div><div><span>Delays missed</span><b>${fmtInt(c.fn)}</b></div>`;
+  const imp = Object.entries(D.importance).slice(0, 9), mx = imp[0][1];
+  $("#impBars").innerHTML = imp.map(([k, v], i) => `<div class="mrow ${i === 0 ? "me" : ""}"><span>${esc(k)}</span><div class="bar"><span style="width:${v / mx * 100}%"></span></div><span class="val">${pct(v, 1)}</span></div>`).join("");
+  const el = $("#calChart"), w = Math.max(300, el.clientWidth || 500), h = Math.round(Math.max(200, w * 0.55)), m = { l: 40, r: 12, t: 10, b: 28 };
+  const x = v => m.l + v * (w - m.l - m.r), y = v => h - m.b - v * (h - m.t - m.b);
+  let g = "";
+  for (let v = 0; v <= 1.001; v += 0.25) g += `<line x1="${m.l}" x2="${w - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${pct(v)}</text><text x="${x(v)}" y="${h - 8}" text-anchor="middle">${v.toFixed(2)}</text>`;
+  g += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}" stroke="var(--ink-3)" stroke-dasharray="4 3"/>`;
+  const pts = D.calibration.filter(b => b.n > 0);
+  g += `<polyline points="${pts.map(b => `${x(b.pred)},${y(b.obs)}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  pts.forEach(b => g += `<circle cx="${x(b.pred)}" cy="${y(b.obs)}" r="3.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"><title>predicted ${b.pred.toFixed(2)}, observed ${b.obs.toFixed(2)}, n=${b.n}</title></circle>`);
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Calibration curve">${g}</svg>`;
+}
+
+// ----------------------------------------------------------- impact
+function renderImpact() {
+  const b = D.paper.sim_base, man = b.manual, ag = b.agent, pp = D.paper;
+  const rows = [
+    ["Delays caught while in transit", pp.recall_early_rule, pp.recall_early_agent, v => pct(v, 1), 1],
+    ["Mean time to resolution", man.mttr_true[0], ag.mttr_true[0], v => v.toFixed(1) + " h"],
+    ["Median time to resolution", man.median_true[0], ag.median_true[0], v => v.toFixed(1) + " h"],
+    ["Planner handling hours", man.planner_hours[0], ag.planner_hours[0], v => fmtInt(v) + " h"],
+    ["Exceptions resolved without a planner", man.share_auto[0], ag.share_auto[0], v => pct(v)],
+  ];
+  $("#impBarsCmp").innerHTML = rows.map(([l, a, c, f]) => { const mx = Math.max(a, c) || 1; const ch = a ? (c - a) / a : null;
+    return `<div class="cmp"><span>${l}${ch !== null && isFinite(ch) ? `<span class="hint" style="display:block;margin:0">${ch > 0 ? "+" : "−"}${pct(Math.abs(ch))}</span>` : ""}</span><div class="bars">
+      <div><span class="b" style="width:${a / mx * 65}%;background:var(--neutral-mark)"></span><em>${f(a)}</em></div>
+      <div><span class="b" style="width:${c / mx * 65}%;background:var(--accent)"></span><em>${f(c)}</em></div></div></div>`; }).join("");
+  const s = pp.sensitivity, pl = [7, 8, 10], hm = ["0.7", "1.0", "1.3"];
+  const shade = r => `background:color-mix(in srgb, var(--accent) ${Math.round(12 + r * 70)}%, var(--surface));color:${r > .6 ? "#fff" : "var(--ink)"}`;
+  $("#sensTable").innerHTML = `<thead><tr><th>Planners</th>${hm.map(h => `<th class="n" style="text-align:center">Task time × ${h}</th>`).join("")}</tr></thead><tbody>` +
+    pl.map(p => `<tr><td style="text-align:left;font-weight:500">${p}${p === 8 ? " (base)" : ""}</td>${hm.map(h => { const r = s[`${p}_${h}`].red; return `<td style="${shade(r)}" title="manual ${s[`${p}_${h}`].manual} h, agent ${s[`${p}_${h}`].agent} h">−${pct(r)}</td>`; }).join("")}</tr>`).join("") + "</tbody>";
+}
+
+// ----------------------------------------------------------- routing
+const TABS = ["exceptions", "activity", "policy", "model", "impact", "about"];
+function route() {
+  const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "exceptions";
+  $$(".side-nav a").forEach(a => a.setAttribute("aria-current", a.dataset.tab === t ? "page" : "false"));
+  $$("section.panel").forEach(s => s.hidden = s.id !== "p-" + t);
+  ({ exceptions: renderExceptions, activity: renderActivity, policy: renderPolicy, model: renderModel, impact: renderImpact, about: () => {} })[t]();
+}
+window.addEventListener("hashchange", () => { if (DW) closeShip(); route(); });
+let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(route, 150); });
+renderKpis(); route();
+})();
+</script>
