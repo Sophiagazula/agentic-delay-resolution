@@ -73,3 +73,39 @@ A `CITATION.cff` file is included, so GitHub shows a **"Cite this repository"** 
 ## License
 
 Code is released under the MIT License. The paper is © 2026 Sophia Gazula.
+
+## Exception console
+
+A working view of the agent's output: the exception queue a planner would open each morning, with the
+reasoning behind each alert, the policy settings, and the evaluation from the paper.
+
+**Live:** https://sophiagazula.github.io/agentic-delay-resolution/
+
+| Page | What it shows |
+|---|---|
+| Exceptions | In-transit shipments flagged by the model, ranked by severity and routed by tier. Click a row to see Sense → Predict → Assess → Decide → Act for that shipment. |
+| Activity and overrides | What the agent did, planner approvals and rejections, and rejection rate by carrier (the feedback signal). |
+| Policy and thresholds | Move the alert threshold, tier boundaries and severity weights; the 12,056-shipment test set is re-scored live in the browser. |
+| Model performance | Rule vs. logistic regression vs. Random Forest, confusion counts, feature importance, calibration. |
+| Workflow impact | Simulated planner hours and time to resolution, manual vs. agent, with sensitivity analysis. |
+| Architecture and paper | The architecture figure, the paper, and what in the console is illustrative. |
+
+**How it's built.** `console/build.py` runs `src/experiment.py` unchanged, checks that every number in
+`results/results.json` is reproduced exactly (the build fails otherwise), then exports the test set,
+severity and tiers to `data.js`. Per-shipment risk drivers are tree-path contributions from the Random
+Forest; they sum to the predicted probability. The page is static HTML with no framework.
+
+**What's illustrative.** The snapshot time (14 Oct 2025, 10:00), shipment IDs, planner statuses and the
+Tier 2 proposed action are added so the queue looks like a working day. Model scores, severity, tiers,
+metrics and simulation results all come from the paper's code.
+
+Run locally:
+
+```bash
+pip install -r console/requirements.txt
+python console/build.py        # ~2.5 minutes; writes _site/
+python -m http.server -d _site 8000
+```
+
+The GitHub Actions workflow in `.github/workflows/console.yml` runs the same build on every push to
+`main` and deploys `_site/` to GitHub Pages.
