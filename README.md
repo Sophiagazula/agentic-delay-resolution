@@ -9,6 +9,8 @@ This repository contains the paper, code, and synthetic data for
 
 📄 **Paper:** [SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7657262) · DOI [10.2139/ssrn.7657262](https://doi.org/10.2139/ssrn.7657262) · [PDF in this repo](paper/Gazula_Agentic_Delay_Resolution_Paper.pdf)
 
+ **Link:**  - ([https://sophiagazula.github.io/agentic-delay-resolution/](https://sophiagazula.github.io/agentic-delay-resolution/)
+
 ## Overview
 
 The delay resolution agent predicts international shipment delays, scores their business severity, and acts under a tiered-autonomy policy:
